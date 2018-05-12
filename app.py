@@ -17,7 +17,8 @@ class App:
             self.load()
         except FileNotFoundError:
             print("JSON file with token not found")
-            
+            exit(0)
+
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
         self.updater = Updater(token=self.key)
