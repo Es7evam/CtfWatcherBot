@@ -75,26 +75,25 @@ class App:
         fmtstr = '%Y-%m-%dT%H:%M:%S'
 
         now = int(time.time())
-        nextweek = now + 604800 * 9 # for testing
+        nextweek = now + 604800 * 4 # printing time in weeks
 
-        f = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=20&start={}&finish={}'.format(now, nextweek))
+        f = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=5&start={}&finish={}'.format(now, nextweek))
         l = json.load(f)
         newL = []
         genstr = '%a, %B %d, %Y %H:%M UTC '    #
 
         for o in l:
-            if not o['onsite']:
-                o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
-                o['start'] = o['start'].strftime(genstr)
-                #o['finish'] = datetime.datetime.strptime(o['finish'][:-6], fmtstr)
-                newL.append(o)
+            o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
+            o['start'] = o['start'].strftime(genstr)
+            #o['finish'] = datetime.datetime.strptime(o['finish'][:-6], fmtstr)
+            newL.append(o)
 
         return newL
 
 
     def upcoming(self, bot, update):
         l = self.list_events()
-        msg = "*Upcoming Online Events:*"
+        msg = "*Upcoming Events:*"
         for o in l:
             print(o['start'])
             msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') ' + '\n'
@@ -115,7 +114,6 @@ class App:
             else: #0 days
                 if(o['duration']['hours']):
                     msg += 'Duration: ' + str(o['duration']['hours']) + ' hours\n'
-
 
         bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
 
