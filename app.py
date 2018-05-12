@@ -13,8 +13,11 @@ from telegram import ParseMode
 
 class App:
     def __init__(self):
-        self.load()
-
+        try:
+            self.load()
+        except FileNotFoundError:
+            print("JSON file with token not found")
+            
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
         self.updater = Updater(token=self.key)
@@ -54,7 +57,7 @@ class App:
         pass
 
     def help(self, bot, update):
-        msg = "Hey, I'm CtfWatcher Bot. I mainly list Capture The Flag competitions."
+        msg = "Hey, I'm CtfWatcher Bot :D. I list Capture The Flag competitions."
         msg += "\n\nI currently have this commands:\n\n"
         msg += "/start - start the bot.\n"
         msg += "/upcoming - show the next month's CTFs, maximum of 5.\n"
