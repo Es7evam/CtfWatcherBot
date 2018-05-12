@@ -5,8 +5,10 @@ import urllib.request
 import json
 import datetime
 import threading
+import time
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import ParseMode
 
 
 class App:
@@ -21,6 +23,7 @@ class App:
         self.dispatcher.add_handler(CommandHandler('start', self.start))
         self.dispatcher.add_handler(CommandHandler('subscribe', self.subscribe))
         self.dispatcher.add_handler(CommandHandler('unsubscribe', self.unsubscribe))
+        self.dispatcher.add_handler(CommandHandler('upcoming', self.upcoming))
         # self.dispatcher.add_handler(CommandHandler('list_events', self.list_events, pass_args=True))
 
         self.jobs = self.updater.job_queue
@@ -68,21 +71,55 @@ class App:
             for subscriber in self.subscribers:
                 bot.send_message(chat_id=subscriber, text="yo!")
 
-    # def list_events(self, bot, update, args):
-    #     fmtstr = '%Y-%m-%dT%H:%M:%S'
-    #     start, finish = args
+    def list_events(self):
+        fmtstr = '%Y-%m-%dT%H:%M:%S'
 
-    #     f = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=20&start={}&finish={}'.format(start, finish))
-    #     l = json.load(f)
-    #     newL = []
+        now = int(time.time())
+        nextweek = now + 604800 * 9 # for testing
 
-    #     for o in l:
-    #         if not o['onsite']:
-    #             o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
-    #             o['finish'] = datetime.datetime.strptime(o['finish'][:-6], fmtstr)
-    #             newL.append(o)
+        f = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=20&start={}&finish={}'.format(now, nextweek))
+        l = json.load(f)
+        newL = []
+        genstr = '%a, %B %d, %Y %H:%M UTC '    #
 
-    #     return newL
+        for o in l:
+            if not o['onsite']:
+                o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
+                o['start'] = o['start'].strftime(genstr)
+                #o['finish'] = datetime.datetime.strptime(o['finish'][:-6], fmtstr)
+                newL.append(o)
+
+        return newL
+
+
+    def upcoming(self, bot, update):
+        l = self.list_events()
+        msg = "*Upcoming Online Events:*"
+        for o in l:
+            print(o['start'])
+            msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') ' + '\n'
+            msg += o['format'] + '\n'
+            msg += str(o['start']) + '\n'
+            if(o['duration']['days'] > 1):
+                msg += 'Duration: ' + str(o['duration']['days']) + ' days'
+                if(o['duration']['hours']):
+                    msg += ' and ' + str(o['duration']['hours']) + ' hours\n'
+                else:
+                    msg += '\n'
+            elif(o['duration']['days'] == 1):
+                msg += 'Duration: ' + str(o['duration']['days']) + ' day'
+                if(o['duration']['hours']):
+                    msg += ' and ' + str(o['duration']['hours']) + ' hours\n'
+                else:
+                    msg += '\n'
+            else: #0 days
+                if(o['duration']['hours']):
+                    msg += 'Duration: ' + str(o['duration']['hours']) + ' hours\n'
+
+
+        bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
+
+
 
 
 if __name__ == '__main__':
