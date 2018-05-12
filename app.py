@@ -21,6 +21,7 @@ class App:
         self.dispatcher = self.updater.dispatcher
 
         self.dispatcher.add_handler(CommandHandler('start', self.start))
+        self.dispatcher.add_handler(CommandHandler('help', self.help))
         self.dispatcher.add_handler(CommandHandler('subscribe', self.subscribe))
         self.dispatcher.add_handler(CommandHandler('unsubscribe', self.unsubscribe))
         self.dispatcher.add_handler(CommandHandler('upcoming', self.upcoming))
@@ -51,6 +52,15 @@ class App:
 
     def start(self, bot, update):
         pass
+
+    def help(self, bot, update):
+        msg = "Hey, I'm CtfWatcher Bot. I mainly list Capture The Flag competitions."
+        msg += "\n\nI currently have this commands:\n\n"
+        msg += "/start - start the bot.\n"
+        msg += "/upcoming - show the next month's CTFs, maximum of 5.\n"
+        msg += "/help - shows this help message."
+        bot.send_message(chat_id=update.message.chat_id, text=msg)
+
 
     def subscribe(self, bot, update):
         chat_id = update.message.chat_id
@@ -114,9 +124,6 @@ class App:
                     msg += 'Duration: ' + str(o['duration']['hours']) + ' hours\n'
 
         bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
-
-
-
 
 if __name__ == '__main__':
     App().run()
