@@ -85,7 +85,6 @@ class App:
         for o in l:
             o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
             o['start'] = o['start'].strftime(genstr)
-            #o['finish'] = datetime.datetime.strptime(o['finish'][:-6], fmtstr)
             newL.append(o)
 
         return newL
@@ -95,7 +94,6 @@ class App:
         l = self.list_events()
         msg = "*Upcoming Events:*"
         for o in l:
-            print(o['start'])
             msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') ' + '\n'
             msg += o['format'] + '\n'
             msg += str(o['start']) + '\n'
