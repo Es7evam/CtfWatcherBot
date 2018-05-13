@@ -56,7 +56,7 @@ class App:
 
     def start(self, bot, update):
         msg = "Welcome to CtfWatcherBot \o/\n"
-        msg += "Type /help for a list of functionalities"
+        msg += "Type /help for a list of functionalities."
         bot.send_message(chat_id=update.message.chat_id, text=msg)
 
     def help(self, bot, update):
@@ -74,6 +74,9 @@ class App:
         chat_id = update.message.chat_id
 
         with self.subscribersLock:
+            if(chat_id in self.subscribers):
+                bot.send_message(chat_id=chat_id, text="Already subscribed!")
+                return
             self.subscribers.add(chat_id)
             self.save()
             bot.send_message(chat_id=chat_id, text="Subscribed successfully!")
@@ -82,8 +85,13 @@ class App:
         chat_id = update.message.chat_id
 
         with self.subscribersLock:
-            self.subscribers.remove(chat_id)
-            self.save()
+            if(chat_id in self.subscribers):
+                self.subscribers.remove(chat_id)
+                self.save()
+                bot.send_message(chat_id=chat_id, text="Unsubscribed successfully :(")
+                return
+
+            bot.send_message(chat_id=chat_id, text="User not subscribed!")
 
     def tick(self, bot, job):
         startTime = int(time.time()) + 86400 #1 day
