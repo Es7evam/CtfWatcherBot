@@ -55,7 +55,9 @@ class App:
         self.updater.start_polling()
 
     def start(self, bot, update):
-        pass
+        msg = "Welcome to CtfWatcherBot \o/\n"
+        msg += "Type /help for a list of functionalities"
+        bot.send_message(chat_id=update.message.chat_id, text=msg)
 
     def help(self, bot, update):
         msg = "Hey, I'm CtfWatcher Bot :D. I list Capture The Flag competitions."
