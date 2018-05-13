@@ -64,7 +64,7 @@ class App:
         msg += "\n\nI currently have this commands:\n\n"
         msg += "/start - start the bot.\n"
         msg += "/upcoming - show the next month's CTFs, maximum of 5.\n"
-        msg += "/subscribe - subscribes for CTF notifications (1 day before).\n"
+        msg += "/subscribe - subscribes for CTF notifications (1 day and also 1 hour before).\n"
         msg += "/unsubscribe - unsubscribe for CTF notifications.\n"
         msg += "/help - shows this help message."
         bot.send_message(chat_id=update.message.chat_id, text=msg)
