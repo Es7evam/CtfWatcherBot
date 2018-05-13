@@ -94,19 +94,29 @@ class App:
             bot.send_message(chat_id=chat_id, text="User not subscribed!")
 
     def tick(self, bot, job):
-        startTime = int(time.time()) + 86400 #1 day
+        oneDay = int(time.time()) + 86400 #1 day
+        oneHour = int(time.time()) + 3600 #1 hour
+
         fmtstr = '%Y-%m-%dT%H:%M:%S'
 
-        f = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=1&start={}'.format(startTime-300))
-        l = json.load(f)
-        for o in l:
-            o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
+        fDay = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneDay-300))
+        lDay = json.load(fDay)
+        for oDay in lDay:
+            oDay['start'] = datetime.datetime.strptime(oDay['start'][:-6], fmtstr)
+
+        fHour = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneHour-300))
+        lHour = json.load(fHour)
+        for oHour in lHour:
+            oHour['start'] = datetime.datetime.strptime(oHour['start'][:-6], fmtstr)
 
         #print(int(o['start'].timestamp())) # starting event time
         with self.subscribersLock:
             for subscriber in self.subscribers:
-                if(int(o['start'].timestamp()) < startTime):
-                    msg = "[" + o['title'] + "](" + o['url'] + ") will start in 1 day."
+                if(int(oDay['start'].timestamp()) < oneDay):
+                    msg = "[" + oDay['title'] + "](" + oDay['url'] + ") will start in 1 day."
+                    bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
+                if(int(oHour['start'].timestamp()) < oneHour):
+                    msg = '[' + oHour['title'] + '](' + oHour['url'] + ") will start in 1 hour."
                     bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
 
     def list_events(self):
