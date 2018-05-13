@@ -40,7 +40,7 @@ class App:
         with open('config.json', 'r') as f:
             o = json.load(f)
             self.subscribers = set(o['subscribers']) if 'subscribers' in o else set()
-            self.interval = o['interval'] if 'interval' in o else 60
+            self.interval = o['interval'] if 'interval' in o else 300
             self.key = o['key']
 
     def save(self):
@@ -62,6 +62,8 @@ class App:
         msg += "\n\nI currently have this commands:\n\n"
         msg += "/start - start the bot.\n"
         msg += "/upcoming - show the next month's CTFs, maximum of 5.\n"
+        msg += "/subscribe - subscribes for CTF notifications (1 day before).\n"
+        msg += "/unsubscribe - unsubscribe for CTF notifications.\n"
         msg += "/help - shows this help message."
         bot.send_message(chat_id=update.message.chat_id, text=msg)
 
@@ -72,6 +74,7 @@ class App:
         with self.subscribersLock:
             self.subscribers.add(chat_id)
             self.save()
+            bot.send_message(chat_id=chat_id, text="Subscribed successfully!")
 
     def unsubscribe(self, bot, update):
         chat_id = update.message.chat_id
@@ -81,13 +84,23 @@ class App:
             self.save()
 
     def tick(self, bot, job):
+        startTime = int(time.time()) + 86400 #1 day
+        fmtstr = '%Y-%m-%dT%H:%M:%S'
+
+        f = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=1&start={}'.format(startTime-300))
+        l = json.load(f)
+        for o in l:
+            o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
+
+        #print(int(o['start'].timestamp())) # starting event time
         with self.subscribersLock:
             for subscriber in self.subscribers:
-                bot.send_message(chat_id=subscriber, text="yo!")
+                if(int(o['start'].timestamp()) < startTime):
+                    msg = "[" + o['title'] + "](" + o['url'] + ") will start in 1 day."
+                    bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
 
     def list_events(self):
         fmtstr = '%Y-%m-%dT%H:%M:%S'
-
         now = int(time.time())
         nextweek = now + 604800 * 4 # printing time in weeks
 
