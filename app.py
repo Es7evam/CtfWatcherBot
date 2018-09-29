@@ -65,7 +65,7 @@ class App:
 		msg += "\n\nI currently have this commands:\n\n"
 		msg += "/start - start the bot.\n"
 		msg += "/upcoming - show the next month's CTFs, maximum of 5.\n"
-		msg += "/now - show the CTFs happening right now."
+		msg += "/now - show the CTFs happening right now.\n"
 		msg += "/subscribe - subscribes for CTF notifications (1 day and also 1 hour before).\n"
 		msg += "/unsubscribe - unsubscribe for CTF notifications.\n"
 		msg += "/help - shows this help message."
