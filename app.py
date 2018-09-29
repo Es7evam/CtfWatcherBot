@@ -68,8 +68,9 @@ class App:
 		msg += "/now - show the CTFs happening right now.\n"
 		msg += "/subscribe - subscribes for CTF notifications (1 day and also 1 hour before).\n"
 		msg += "/unsubscribe - unsubscribe for CTF notifications.\n"
-		msg += "/help - shows this help message."
-		bot.send_message(chat_id=update.message.chat_id, text=msg)
+		msg += "/help - shows this help message.\n"
+		msg += "\nBe sure to check our [Github repo](https://github.com/Es7evam/CtfWatcherBot)."
+		bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True )
 
 
 	def subscribe(self, bot, update):
