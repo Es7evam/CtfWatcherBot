@@ -6,6 +6,8 @@ import json
 import datetime
 import threading
 import time
+import traceback
+
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ParseMode
@@ -102,15 +104,34 @@ class App:
 
 		fmtstr = '%Y-%m-%dT%H:%M:%S'
 
-		fDay = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneDay-300))
-		lDay = json.load(fDay)
-		for oDay in lDay:
-			oDay['start'] = datetime.datetime.strptime(oDay['start'][:-6], fmtstr)
+		reqHeader = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    	'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+    	'Accept-Encoding': 'none',
+    	'Accept-Language': 'en-US,en;q=0.8',
+		'Connection': 'keep-alive'}
 
-		fHour = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneHour-300))
-		lHour = json.load(fHour)
-		for oHour in lHour:
-			oHour['start'] = datetime.datetime.strptime(oHour['start'][:-6], fmtstr)
+		try:
+			callurl = 'https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneDay-300)
+			req = urllib.request.Request(callurl, headers=reqHeader)
+			fDay = urllib.request.urlopen(req)
+			lDay = json.load(fDay)
+			for oDay in lDay:
+				oDay['start'] = datetime.datetime.strptime(oDay['start'][:-6], fmtstr)
+		except Exception as e:
+			print("Error requesting CTFTime API: " + str(e))
+
+
+		
+		try:
+			callurl = 'https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneHour-300)
+			req = urllib.request.Request(callurl, headers=reqHeader)
+			fHour = urllib.request.urlopen(req)
+			lHour = json.load(fHour)
+			for oHour in lHour:
+				oHour['start'] = datetime.datetime.strptime(oHour['start'][:-6], fmtstr)
+		except Exception as e:
+			print("Error requesting CTFTime API" + str(e))
 
 		#print(int(o['start'].timestamp())) # starting event time
 		with self.subscribersLock:
@@ -127,7 +148,16 @@ class App:
 		now = int(time.time())
 		nextweek = now + 604800 * 4 # printing time in weeks
 
-		f = urllib.request.urlopen('https://ctftime.org/api/v1/events/?limit=5&start={}&finish={}'.format(now, nextweek))
+		reqHeader = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+    	'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    	'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+    	'Accept-Encoding': 'none',
+    	'Accept-Language': 'en-US,en;q=0.8',
+		'Connection': 'keep-alive'}
+
+		reqUrl = 'https://ctftime.org/api/v1/events/?limit=5&start={}&finish={}'.format(now, nextweek)
+		req = urllib.request.Request(reqUrl, headers=reqHeader)
+		f = urllib.request.urlopen(req)
 		l = json.load(f)
 		newL = []
 		genstr = '%a, %B %d, %Y %H:%M UTC '	#
@@ -163,6 +193,8 @@ class App:
 				if(o['duration']['hours']):
 					msg += 'Duration: ' + str(o['duration']['hours']) + ' hours\n'
 
+		if update.message.chat.type == 'private':
+			print("User %s requested upcoming CTFs at %d" % (update.message.chat.username, int(time.time())))
 		bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN)
 
 
