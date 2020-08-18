@@ -99,6 +99,7 @@ class App:
 
 	def subscribe(self, bot, update, args):
 		chat_id = update.message.chat_id
+		print("User @{} is subscribing!".format(update.message.from_user['username']))
 		commands = args	
 
 		if len(commands) == 0 or commands[0] == "all":
@@ -123,6 +124,7 @@ class App:
 
 	def unsubscribe(self, bot, update):
 		chat_id = update.message.chat_id
+		print("User @{} is unsubscribing!".format(update.message.from_user['username']))
 
 		with self.subscribersLock:
 			if(chat_id in self.subscribers):
@@ -139,7 +141,7 @@ class App:
 				
 
 	def sendWarning(self, bot, job, msg, ctfid):
-		print("Sending warning, ctf_id: {}. ", msg)
+		print("Sending warning, ctf_id: {}. ".format(ctfid))
 		teamList = eventScrapper.getEventParticipants(ctfid)
 		with self.subscribersLock:
 			for subscriber in self.subscribers:
@@ -178,13 +180,12 @@ class App:
 			for ctf in ctfList:
 				ctf['start'] = datetime.datetime.strptime(ctf['start'][:-6], fmtstr)
 		except Exception as e:
-			print("Error requesting CTFTime API: " + str(e))
+			print("\n\nError requesting CTFTime API: " + str(e))
 		
 		print("Checking. Date: ", now)
 		# Check if in dayWarned and hourWarned
 		# If not, create a warning and put in it
 		for ctf in ctfList:
-			print("Checking CTF {}".format(ctf['title']))
 			# Time until the start of the ctf
 			timedelta = ctf['start'] - now
 
