@@ -139,6 +139,7 @@ class App:
 				
 
 	def sendWarning(self, bot, job, msg, ctfid):
+		print("Sending warning, ctf_id: {}. ", msg)
 		teamList = eventScrapper.getEventParticipants(ctfid)
 		with self.subscribersLock:
 			for subscriber in self.subscribers:
@@ -179,12 +180,13 @@ class App:
 		except Exception as e:
 			print("Error requesting CTFTime API: " + str(e))
 		
+		print("Checking. Date: ", now)
 		# Check if in dayWarned and hourWarned
 		# If not, create a warning and put in it
 		for ctf in ctfList:
 			print("Checking CTF {}".format(ctf['title']))
 			# Time until the start of the ctf
-			timedelta = now - ctf['start']
+			timedelta = ctf['start'] - now
 
 			if (str(ctf['id']) not in self.dayWarned) and timedelta.days <= 1:
 				print("Adding ctf {} to the dayWarned set".format(ctf['id']))
@@ -199,8 +201,13 @@ class App:
 				(self.hourWarned).add(str(ctf['id']))
 
 				seconds = timedelta.seconds - 3600 # minus 1 hour
-				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 day."
-				threading.Timer(seconds, self.sendWarning, [self, bot, job, msg, ctf['id']])
+				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 hour."
+				threading.Timer(seconds, self.sendWarning, [bot, job, msg, ctf['id']])
+
+			if timedelta.days < 0:
+				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") started already."
+				self.sendWarning(bot, job, msg, ctf['id'])
+
 
 		print(self.dayWarned)
 		self.save()
