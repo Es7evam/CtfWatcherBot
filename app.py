@@ -7,11 +7,14 @@ import datetime
 import threading
 import time
 import traceback
+import pickle
 
+from collections import defaultdict
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ParseMode
 
+import eventScrapper
 
 class App:
 	def __init__(self):
@@ -23,12 +26,12 @@ class App:
 
 		logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-		self.updater = Updater(token=self.key)
+		self.updater = Updater(token=self.key, use_context=False)
 		self.dispatcher = self.updater.dispatcher
 
 		self.dispatcher.add_handler(CommandHandler('start', self.start))
 		self.dispatcher.add_handler(CommandHandler('help', self.help))
-		self.dispatcher.add_handler(CommandHandler('subscribe', self.subscribe))
+		self.dispatcher.add_handler(CommandHandler('subscribe', self.subscribe, pass_args=True))
 		self.dispatcher.add_handler(CommandHandler('unsubscribe', self.unsubscribe))
 		self.dispatcher.add_handler(CommandHandler('upcoming', self.upcoming))
 		self.dispatcher.add_handler(CommandHandler('now', self.now))
@@ -43,22 +46,40 @@ class App:
 		with open('config.json', 'r') as f:
 			o = json.load(f)
 			self.subscribers = set(o['subscribers']) if 'subscribers' in o else set()
+			if 'teamSubscribers' in o:
+				self.teamSubscribers = eventScrapper.listToDict(defaultdict(list, o['teamSubscribers']))#eventScrapper.listToDict(o['teamSubscribers']) 
+				#self.teamSubscribers = eventScrapper.listToDict(o['teamSubscribers']) 
+			else: 
+				self.teamSubscribers = defaultdict(list)
 			self.interval = o['interval'] if 'interval' in o else 300
 			self.key = o['key']
+		with open('db.json', 'r') as dbFile:
+			db = json.load(dbFile)
+			self.dayWarned = set(db['dayWarned']) if 'dayWarned' in db else set()
+			self.hourWarned = set(db['hourWarned']) if 'hourWarned' in db else set()
+
 
 	def save(self):
 		with open('config.json', 'w') as f:
 			json.dump({
 				'subscribers': list(self.subscribers),
+				'teamSubscribers' : defaultdict(list, self.teamSubscribers.items() ),
 				'interval': self.interval,
 				'key': self.key,
 			}, f, indent=4)
+
+		with open('db.json', 'w') as dbFile:
+			json.dump({
+                'dayWarned': list(self.dayWarned),
+				'hourWarned': list(self.hourWarned),
+			}, dbFile, indent=4)
+
 
 	def run(self):
 		self.updater.start_polling()
 
 	def start(self, bot, update):
-		msg = "Welcome to CtfWatcherBot \o/\n"
+		msg = "Welcome to CtfWatcherBot \\o/\n"
 		msg += "Type /help for a list of functionalities."
 		bot.send_message(chat_id=update.message.chat_id, text=msg)
 
@@ -68,23 +89,37 @@ class App:
 		msg += "/start - start the bot.\n"
 		msg += "/upcoming - show the next month's CTFs, maximum of 5.\n"
 		msg += "/now - show the CTFs happening right now.\n"
-		msg += "/subscribe - subscribes for CTF notifications (1 day and also 1 hour before).\n"
+		msg += "/subscribe [all]- subscribes for all CTF notifications (1 day and also 1 hour before).\n"
+		msg += "/subscribe TeamName - subscribes for the specified CTF notifications.\n"
 		msg += "/unsubscribe - unsubscribe for CTF notifications.\n"
 		msg += "/help - shows this help message.\n"
 		msg += "\nBe sure to check our [Github repo](https://github.com/Es7evam/CtfWatcherBot)."
 		bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True )
 
 
-	def subscribe(self, bot, update):
+	def subscribe(self, bot, update, args):
 		chat_id = update.message.chat_id
+		commands = args	
 
-		with self.subscribersLock:
-			if(chat_id in self.subscribers):
-				bot.send_message(chat_id=chat_id, text="Already subscribed!")
-				return
-			self.subscribers.add(chat_id)
-			self.save()
-			bot.send_message(chat_id=chat_id, text="Subscribed successfully!")
+		if len(commands) == 0 or commands[0] == "all":
+			with self.subscribersLock:
+				if(chat_id in self.subscribers):
+					bot.send_message(chat_id=chat_id, text="Already subscribed!")
+					return
+				self.subscribers.add(chat_id)
+				bot.send_message(chat_id=chat_id, text="Subscribed for all CTFs successfully!")
+		else:
+			with self.subscribersLock:
+				if commands[0].lower() in self.teamSubscribers[chat_id]:
+					msg = "This team is already subscribed in this chat!"
+				else:
+					self.teamSubscribers[chat_id].append(commands[0].lower())
+					msg = "Team {} subscribed in this chat successfully.".format(commands[0])
+
+				bot.send_message(chat_id=chat_id, text=msg)
+
+		self.save()
+				
 
 	def unsubscribe(self, bot, update):
 		chat_id = update.message.chat_id
@@ -94,14 +129,35 @@ class App:
 				self.subscribers.remove(chat_id)
 				self.save()
 				bot.send_message(chat_id=chat_id, text="Unsubscribed successfully :(")
-				return
+			else:
+				if len(self.teamSubscribers[chat_id]) > 0:
+					self.teamSubscribers[chat_id].clear()
+					bot.send_message(chat_id=chat_id, text="Unsubscribed all teams in this chat.")
+					self.save()
+				else:
+					bot.send_message(chat_id=chat_id, text="Chat not subscribed!")
+				
 
-			bot.send_message(chat_id=chat_id, text="User not subscribed!")
+	def sendWarning(self, bot, job, msg, ctfid):
+		teamList = eventScrapper.getEventParticipants(ctfid)
+		with self.subscribersLock:
+			for subscriber in self.subscribers:
+				bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
+
+			for chat in self.teamSubscribers:
+				hasTeam = False
+				for team in self.teamSubscribers[chat]:
+					if team in teamList:
+						print("Team {} in list!".format(team))
+						hasTeam = True
+
+				if hasTeam == True:	
+					bot.send_message(chat_id=int(chat), text=msg, parse_mode=ParseMode.MARKDOWN)
+
+
 
 	def tick(self, bot, job):
-		oneDay = int(time.time()) + 86400 #1 day
-		oneHour = int(time.time()) + 3600 #1 hour
-
+		now = datetime.datetime.now()
 		fmtstr = '%Y-%m-%dT%H:%M:%S'
 
 		reqHeader = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -111,37 +167,44 @@ class App:
     	'Accept-Language': 'en-US,en;q=0.8',
 		'Connection': 'keep-alive'}
 
+		# Getting CTFs from API
+		callurl = 'https://ctftime.org/api/v1/events/?limit=1&start={}'.format(now.timestamp())
+		print("\n\nCall URL: ", callurl, "\n")
 		try:
-			callurl = 'https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneDay-300)
 			req = urllib.request.Request(callurl, headers=reqHeader)
 			fDay = urllib.request.urlopen(req)
-			lDay = json.load(fDay)
-			for oDay in lDay:
-				oDay['start'] = datetime.datetime.strptime(oDay['start'][:-6], fmtstr)
+			ctfList = json.load(fDay)
+			for ctf in ctfList:
+				ctf['start'] = datetime.datetime.strptime(ctf['start'][:-6], fmtstr)
 		except Exception as e:
 			print("Error requesting CTFTime API: " + str(e))
-
-
 		
-		try:
-			callurl = 'https://ctftime.org/api/v1/events/?limit=1&start={}'.format(oneHour-300)
-			req = urllib.request.Request(callurl, headers=reqHeader)
-			fHour = urllib.request.urlopen(req)
-			lHour = json.load(fHour)
-			for oHour in lHour:
-				oHour['start'] = datetime.datetime.strptime(oHour['start'][:-6], fmtstr)
-		except Exception as e:
-			print("Error requesting CTFTime API" + str(e))
+		# Check if in dayWarned and hourWarned
+		# If not, create a warning and put in it
+		for ctf in ctfList:
+			print("Checking CTF {}".format(ctf['title']))
+			# Time until the start of the ctf
+			timedelta = now - ctf['start']
 
-		#print(int(o['start'].timestamp())) # starting event time
-		with self.subscribersLock:
-			for subscriber in self.subscribers:
-				if(int(oDay['start'].timestamp()) < oneDay):
-					msg = "[" + oDay['title'] + "](" + oDay['url'] + ") will start in 1 day."
-					bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
-				if(int(oHour['start'].timestamp()) < oneHour):
-					msg = '[' + oHour['title'] + '](' + oHour['url'] + ") will start in 1 hour."
-					bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
+			if (str(ctf['id']) not in self.dayWarned) and timedelta.days <= 1:
+				print("Adding ctf {} to the dayWarned set".format(ctf['id']))
+				(self.dayWarned).add(str(ctf['id']))
+
+				seconds = (timedelta.days * 86400) + timedelta.seconds - 86400
+				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 day."
+				threading.Timer(seconds, self.sendWarning, [self, bot, job, msg, ctf['id']])
+
+			if (str(ctf['id']) not in self.hourWarned) and timedelta.days == 0 and timedelta.seconds/3600 < 5:
+				print("Adding ctf {} to the hourWarned set".format(ctf['id']))
+				(self.hourWarned).add(str(ctf['id']))
+
+				seconds = timedelta.seconds - 3600 # minus 1 hour
+				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 day."
+				threading.Timer(seconds, self.sendWarning, [self, bot, job, msg, ctf['id']])
+
+		print(self.dayWarned)
+		self.save()
+
 
 	def list_events(self):
 		fmtstr = '%Y-%m-%dT%H:%M:%S'
@@ -174,7 +237,7 @@ class App:
 		l = self.list_events()
 		msg = "*Upcoming Events:*"
 		for o in l:
-			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') ' + '\n'
+			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') (' + str(o['id']) + ')' + '\n'
 			msg += o['format'] + '\n'
 			msg += str(o['start']) + '\n'
 			if(o['duration']['days'] > 1):
