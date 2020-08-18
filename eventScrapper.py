@@ -43,13 +43,23 @@ def listToDict(LTeamSubscribers):
     
     return teamDict
 
-def getRating(eventId):
+def getScoreboard(eventId):
     url = 'https://ctftime.org/event/{}'.format(eventId)
     html = makeRequest(url)
 
     # Gets the team list 
     teamList = html.findAll('tr')[1:]
 
+    # Check if scoreboard is out yet
+    hasScoreboard = False
+    h3 = html.findAll('h3')
+    for element in h3:
+        if 'Scoreboard' in element:
+            hasScoreboard = True
+    if hasScoreboard == False:
+        return []
+
+    # Parses the scoreboard
     scoreboard = []
     for team in teamList:
         teamInfo = team.findAll('td')
