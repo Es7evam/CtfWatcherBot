@@ -291,7 +291,7 @@ class App:
 			o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)	
 			o['finish'] = datetime.datetime.strptime(o['finish'][:-6], fmtstr)	
 			if(int(o['start'].timestamp()) > daysAgo):
-				if(int(o['finish'].timestamp()) > now):
+				if(int(o['finish'].timestamp()) > now) and (int(o['start'].timestamp() < now)):
 					o['start'] = o['start'].strftime(genstr)
 					newL.append(o)
 
