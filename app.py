@@ -215,13 +215,12 @@ class App:
 		
 		# Check scoreboard of CTFs that may have ended
 		# Optimize this in the future by looking a week after finish
-		# Change this to ctf title instead of just id
 		toRemove = []
 		for ctf_id in self.hourWarned:
-			scores = eventScrapper.getScoreboard(ctf_id)
+			scores, ctfTitle = eventScrapper.getScoreboard(ctf_id)
 			if len(scores) > 0:
 				for chat in self.teamSubscribers:
-					msg = "*" + ctf_id + "* has ended and the ratings are out.\n\n"
+					msg = "*" + ctfTitle + "* has ended and the ratings are out.\n\n"
 					hasTeam = False
 					for team in self.teamSubscribers[chat]:
 						for teamScore in scores:

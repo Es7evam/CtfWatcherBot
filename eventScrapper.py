@@ -49,6 +49,7 @@ def getScoreboard(eventId):
 
     # Gets the team list 
     teamList = html.findAll('tr')[1:]
+    title = html.find('meta', {'property': 'og:title'})['content']
 
     # Check if scoreboard is out yet
     hasScoreboard = False
@@ -57,7 +58,7 @@ def getScoreboard(eventId):
         if 'Scoreboard' in element:
             hasScoreboard = True
     if hasScoreboard == False:
-        return []
+        return [], title
 
     # Parses the scoreboard
     scoreboard = []
@@ -70,5 +71,5 @@ def getScoreboard(eventId):
 
         scoreboard.append([teamName, place, rating])
 
-    return scoreboard
+    return scoreboard, title
 
