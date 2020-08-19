@@ -1,5 +1,5 @@
 # CtfWatcherBot
-CtfWatcherBot is a Telegram Bot that helps you keep track of Capture The Flag competitions using [CTFTime Api](http://ctftime.org/api/). <br>
+CtfWatcherBot is a Telegram Bot that helps you keep track of Capture The Flag competitions using [CTFTime Api](http://ctftime.org/api/) and some scrapping. <br>
 Try yourself at [https://t.me/CtfWatcherBot](https://t.me/CtfWatcherBot)
 
 
