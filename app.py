@@ -100,9 +100,9 @@ class App:
 	def subscribe(self, bot, update, args):
 		chat_id = update.message.chat_id
 		print("User @{} is subscribing!".format(update.message.from_user['username']))
-		commands = args	
+		commands = ' '.join(args)	
 
-		if len(commands) == 0 or commands[0] == "all":
+		if len(commands) == 0 or commands == "all":
 			with self.subscribersLock:
 				if(chat_id in self.subscribers):
 					bot.send_message(chat_id=chat_id, text="Already subscribed!")
@@ -111,11 +111,11 @@ class App:
 				bot.send_message(chat_id=chat_id, text="Subscribed for all CTFs successfully!")
 		else:
 			with self.subscribersLock:
-				if commands[0].lower() in self.teamSubscribers[chat_id]:
+				if commands.lower() in self.teamSubscribers[chat_id]:
 					msg = "This team is already subscribed in this chat!"
 				else:
-					self.teamSubscribers[chat_id].append(commands[0].lower())
-					msg = "Team {} subscribed in this chat successfully.".format(commands[0])
+					self.teamSubscribers[chat_id].append(commands.lower())
+					msg = "Team {} subscribed in this chat successfully.".format(commands)
 
 				bot.send_message(chat_id=chat_id, text=msg)
 
