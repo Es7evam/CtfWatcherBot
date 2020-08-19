@@ -211,6 +211,33 @@ class App:
 
 
 		print(self.dayWarned)
+
+		
+		# Check scoreboard of CTFs that may have ended
+		# Optimize this in the future by looking a week after finish
+		toRemove = []
+		for ctf_id in self.hourWarned:
+			scores, ctfTitle = eventScrapper.getScoreboard(ctf_id)
+			if len(scores) > 0:
+				for chat in self.teamSubscribers:
+					msg = "*" + ctfTitle + "* has ended and the ratings are out.\n\n"
+					hasTeam = False
+					for team in self.teamSubscribers[chat]:
+						for teamScore in scores:
+							if team == teamScore[0].lower():
+								hasTeam = True
+								msg += "*" + teamScore[0] + "*: +" + teamScore[2] + "points\n"
+								
+					if hasTeam == True:	
+						bot.send_message(chat_id=int(chat), text=msg, parse_mode=ParseMode.MARKDOWN)
+
+				# CTF is over, remove from lists
+				toRemove.append(ctf_id)
+
+		for ctf_id in toRemove:
+			self.dayWarned.remove(ctf_id)
+			self.hourWarned.remove(ctf_id)
+
 		self.save()
 
 
