@@ -151,7 +151,7 @@ class App:
 				hasTeam = False
 				for team in self.teamSubscribers[chat]:
 					if team in teamList:
-						print("Team {} in list!".format(team))
+						print("\tTeam {} in list of chat {}!".format(team, chat))
 						hasTeam = True
 
 				if hasTeam == True:	
@@ -160,7 +160,7 @@ class App:
 
 
 	def tick(self, bot, job):
-		now = datetime.datetime.now()
+		now = datetime.datetime.utcnow()
 		fmtstr = '%Y-%m-%dT%H:%M:%S'
 
 		reqHeader = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -180,35 +180,48 @@ class App:
 			for ctf in ctfList:
 				ctf['start'] = datetime.datetime.strptime(ctf['start'][:-6], fmtstr)
 		except Exception as e:
-			print("\n\nError requesting CTFTime API: " + str(e))
+			print("\nError requesting CTFTime API: " + str(e))
 		
 		print("Checking. Date: ", now)
 		# Check if in dayWarned and hourWarned
 		# If not, create a warning and put in it
-		for ctf in ctfList:
-			# Time until the start of the ctf
-			timedelta = ctf['start'] - now
+		try:
+			for ctf in ctfList:
+				# Time until the start of the ctf
+				timedelta = ctf['start'] - now
 
-			if (str(ctf['id']) not in self.dayWarned) and timedelta.days <= 1:
-				print("Adding ctf {} to the dayWarned set".format(ctf['id']))
-				(self.dayWarned).add(str(ctf['id']))
+				if (str(ctf['id']) not in self.dayWarned) and timedelta.days <= 1:
+					print("Adding ctf {} to the dayWarned set".format(ctf['id']))
+					(self.dayWarned).add(str(ctf['id']))
 
-				seconds = (timedelta.days * 86400) + timedelta.seconds - 86400
-				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 day."
-				threading.Timer(seconds, self.sendWarning, [self, bot, job, msg, ctf['id']])
+					seconds = (timedelta.days * 86400) + timedelta.seconds - 86400
 
-			if (str(ctf['id']) not in self.hourWarned) and timedelta.days == 0 and timedelta.seconds/3600 < 5:
-				print("Adding ctf {} to the hourWarned set".format(ctf['id']))
-				(self.hourWarned).add(str(ctf['id']))
+					if seconds < 0:
+						seconds = 0
 
-				seconds = timedelta.seconds - 3600 # minus 1 hour
-				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 hour."
-				threading.Timer(seconds, self.sendWarning, [bot, job, msg, ctf['id']])
+					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 day."
+					timer = threading.Timer(seconds, self.sendWarning, [bot, job, msg, ctf['id']])
+					timer.start()
 
-			if timedelta.days < 0:
-				msg = "[" + ctf['title'] + "](" + ctf['url'] + ") started already."
-				self.sendWarning(bot, job, msg, ctf['id'])
+				if (str(ctf['id']) not in self.hourWarned) and timedelta.days == 0 and timedelta.seconds/3600 < 5:
+					print("Adding ctf {} to the hourWarned set".format(ctf['id']))
+					(self.hourWarned).add(str(ctf['id']))
 
+					seconds = timedelta.seconds - 3600 # minus 1 hour
+
+					if seconds < 0:
+						seconds = 0
+
+
+					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 hour."
+					timer = threading.Timer(seconds, self.sendWarning, [bot, job, msg, ctf['id']])
+					timer.start()
+
+				if timedelta.days < 0:
+					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") started already."
+					self.sendWarning(bot, job, msg, ctf['id'])
+		except UnboundLocalError as e:
+			print("CTFTime is offline" + str(e))
 
 		print(self.dayWarned)
 
