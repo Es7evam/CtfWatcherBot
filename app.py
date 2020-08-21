@@ -171,7 +171,7 @@ class App:
 		'Connection': 'keep-alive'}
 
 		# Getting CTFs from API
-		callurl = 'https://ctftime.org/api/v1/events/?limit=1&start={}'.format(now.timestamp())
+		callurl = 'https://ctftime.org/api/v1/events/?limit=5&start={}'.format(now.timestamp())
 		print("\n\nCall URL: ", callurl, "\n")
 		try:
 			req = urllib.request.Request(callurl, headers=reqHeader)
