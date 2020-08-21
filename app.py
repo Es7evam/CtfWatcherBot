@@ -92,16 +92,25 @@ class App:
 		msg += "/now - show the CTFs happening right now.\n"
 		msg += "/subscribe [all]- subscribes for all CTF notifications (1 day and also 1 hour before).\n"
 		msg += "/subscribe TeamName - subscribes for the specified CTF notifications.\n"
-		msg += "/unsubscribe - unsubscribe for CTF notifications.\n"
+		msg += "/unsubscribe - unsubscribe for all CTF notifications.\n"
+		msg += "/unsubscribe TeamName - unsubscribe a team from the notifications.\n"
+		msg += "/listSubscribed - List all the teams subscribed in this chat\n"
 		msg += "/help - shows this help message.\n"
 		msg += "\nBe sure to check our [Github repo](https://github.com/Es7evam/CtfWatcherBot)."
 		bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True )
 
 	def listSubscribed(self, bot, update):
-		chat_id = update.message.chat_id
+		try:
+			chat_id = update.message.chat_id
+		except AttributeError:
+			# Message was edited instead of sent
+			chat_id = (update['edited_message']['chat'])['id']
+
 		msg = ""
 		if chat_id in self.subscribers:
 			msg += "This chat is subscribed to all CTFs!\n\n"
+		else:
+			msg += "This chat is not subscribed to all CTFs!\n\n"
 
 		if len(self.teamSubscribers[chat_id]) > 0:
 			msg += "The following teams are subscribed in this chat (case insensitive):\n"
