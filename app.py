@@ -32,7 +32,8 @@ class App:
 		self.dispatcher.add_handler(CommandHandler('start', self.start))
 		self.dispatcher.add_handler(CommandHandler('help', self.help))
 		self.dispatcher.add_handler(CommandHandler('subscribe', self.subscribe, pass_args=True))
-		self.dispatcher.add_handler(CommandHandler('unsubscribe', self.unsubscribe))
+		self.dispatcher.add_handler(CommandHandler('unsubscribe', self.unsubscribe, pass_args=True))
+		self.dispatcher.add_handler(CommandHandler('listSubscribed', self.listSubscribed))
 		self.dispatcher.add_handler(CommandHandler('upcoming', self.upcoming))
 		self.dispatcher.add_handler(CommandHandler('now', self.now))
 		# self.dispatcher.add_handler(CommandHandler('list_events', self.list_events, pass_args=True))
@@ -86,15 +87,39 @@ class App:
 	def help(self, bot, update):
 		msg = "Hey, I'm CtfWatcher Bot :D. I list Capture The Flag competitions."
 		msg += "\n\nI currently have this commands:\n\n"
-		msg += "/start - start the bot.\n"
-		msg += "/upcoming - show the next month's CTFs, maximum of 5.\n"
-		msg += "/now - show the CTFs happening right now.\n"
-		msg += "/subscribe [all]- subscribes for all CTF notifications (1 day and also 1 hour before).\n"
-		msg += "/subscribe TeamName - subscribes for the specified CTF notifications.\n"
-		msg += "/unsubscribe - unsubscribe for CTF notifications.\n"
-		msg += "/help - shows this help message.\n"
+		msg += "/start - Starts the bot.\n"
+		msg += "/upcoming - Shows the next month's CTFs, maximum of 5.\n"
+		msg += "/now - Shows the CTFs happening right now.\n"
+		msg += "/subscribe [all]- Subscribes for all CTF notifications (1 day and also 1 hour before).\n"
+		msg += "/subscribe TeamName - Subscribes for the specified CTF notifications.\n"
+		msg += "/unsubscribe - Unsubscribes for all CTF notifications.\n"
+		msg += "/unsubscribe TeamName - Unsubscribes a team from the notifications.\n"
+		msg += "/listSubscribed - Lists all the teams subscribed in this chat\n"
+		msg += "/help - Shows this help message.\n"
 		msg += "\nBe sure to check our [Github repo](https://github.com/Es7evam/CtfWatcherBot)."
 		bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True )
+
+	def listSubscribed(self, bot, update):
+		try:
+			chat_id = update.message.chat_id
+		except AttributeError:
+			# Message was edited instead of sent
+			chat_id = (update['edited_message']['chat'])['id']
+
+		msg = ""
+		if chat_id in self.subscribers:
+			msg += "This chat is subscribed to all CTFs!\n\n"
+		else:
+			msg += "This chat is not subscribed to all CTFs!\n\n"
+
+		if len(self.teamSubscribers[chat_id]) > 0:
+			msg += "The following teams are subscribed in this chat (case insensitive):\n"
+			for team in self.teamSubscribers[chat_id]:
+				msg += ' - {}\n'.format(team) 
+		else:
+			msg += "There are no teams subscribed in this chat!"
+		
+		bot.send_message(chat_id=chat_id, text=msg)
 
 
 	def subscribe(self, bot, update, args):
@@ -122,22 +147,33 @@ class App:
 		self.save()
 				
 
-	def unsubscribe(self, bot, update):
+	def unsubscribe(self, bot, update, args):
 		chat_id = update.message.chat_id
-		print("User @{} is unsubscribing!".format(update.message.from_user['username']))
+		teamName = (' '.join(args)).lower()
+		print("User @{} is unsubscribing in chat {}!".format(update.message.from_user['username'], chat_id))
 
 		with self.subscribersLock:
-			if(chat_id in self.subscribers):
-				self.subscribers.remove(chat_id)
-				self.save()
-				bot.send_message(chat_id=chat_id, text="Unsubscribed successfully :(")
-			else:
-				if len(self.teamSubscribers[chat_id]) > 0:
-					self.teamSubscribers[chat_id].clear()
-					bot.send_message(chat_id=chat_id, text="Unsubscribed all teams in this chat.")
-					self.save()
+			if len(teamName) == 0 or teamName == 'all':
+				if(chat_id in self.subscribers):
+					self.subscribers.remove(chat_id)
+					bot.send_message(chat_id=chat_id, text="Unsubscribed successfully :(")
 				else:
-					bot.send_message(chat_id=chat_id, text="Chat not subscribed!")
+					if len(self.teamSubscribers[chat_id]) > 0:
+						self.teamSubscribers[chat_id].clear()
+						bot.send_message(chat_id=chat_id, text="Unsubscribed all teams in this chat.")
+					else:
+						bot.send_message(chat_id=chat_id, text="Chat not subscribed!")
+			else:
+				if teamName in self.teamSubscribers[chat_id]:
+					self.teamSubscribers[chat_id].remove(teamName.lower())
+					msg = 'Unsubscribed team {} in this chat'.format(teamName)
+					bot.send_message(chat_id=chat_id, text=msg)
+				else:
+					msg = 'Team {} not subscribed in this chat!'.format(teamName)
+					bot.send_message(chat_id=chat_id, text=msg)
+
+		self.save()
+
 				
 
 	def sendWarning(self, bot, job, msg, ctfid):
@@ -211,7 +247,6 @@ class App:
 
 					if seconds < 0:
 						seconds = 0
-
 
 					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 hour."
 					timer = threading.Timer(seconds, self.sendWarning, [bot, job, msg, ctf['id']])
