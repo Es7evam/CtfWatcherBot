@@ -35,6 +35,8 @@ class App:
 		self.dispatcher.add_handler(CommandHandler('unsubscribe', self.unsubscribe, pass_args=True))
 		self.dispatcher.add_handler(CommandHandler('listSubscribed', self.listSubscribed))
 		self.dispatcher.add_handler(CommandHandler('upcoming', self.upcoming))
+		self.dispatcher.add_handler(CommandHandler('getTimezone', self.getTimezone))
+		self.dispatcher.add_handler(CommandHandler('setTimezone', self.setTimezone, pass_args=True))
 		self.dispatcher.add_handler(CommandHandler('now', self.now))
 		# self.dispatcher.add_handler(CommandHandler('list_events', self.list_events, pass_args=True))
 
@@ -48,7 +50,8 @@ class App:
 			o = json.load(f)
 			self.subscribers = set(o['subscribers']) if 'subscribers' in o else set()
 			if 'teamSubscribers' in o:
-				self.teamSubscribers = eventScrapper.listToDict(defaultdict(list, o['teamSubscribers']))#eventScrapper.listToDict(o['teamSubscribers']) 
+				self.teamSubscribers = eventScrapper.listToDict(defaultdict(list, o['teamSubscribers']))
+				#eventScrapper.listToDict(o['teamSubscribers']) 
 				#self.teamSubscribers = eventScrapper.listToDict(o['teamSubscribers']) 
 			else: 
 				self.teamSubscribers = defaultdict(list)
@@ -58,7 +61,8 @@ class App:
 			db = json.load(dbFile)
 			self.dayWarned = set(db['dayWarned']) if 'dayWarned' in db else set()
 			self.hourWarned = set(db['hourWarned']) if 'hourWarned' in db else set()
-
+			self.timezones = dict(db['timezones']) if 'timezones' in db else dict()
+			print("Timezones", self.timezones)
 
 	def save(self):
 		with open('config.json', 'w') as f:
@@ -73,6 +77,7 @@ class App:
 			json.dump({
                 'dayWarned': list(self.dayWarned),
 				'hourWarned': list(self.hourWarned),
+				'timezones': dict(self.timezones),
 			}, dbFile, indent=4)
 
 
@@ -120,6 +125,63 @@ class App:
 			msg += "There are no teams subscribed in this chat!"
 		
 		bot.send_message(chat_id=chat_id, text=msg)
+
+	def setTimezone(self, bot, update, args):
+		try:
+			chat_id = update.message.chat_id
+		except AttributeError:
+			# Message was edited instead of sent
+			chat_id = (update['edited_message']['chat'])['id']
+
+		msg = ""
+		if len(args) ==0:
+			msg = "Please specify timezone in the message!\n E.g.: /setTimezone -3"
+			bot.send_message(chat_id=chat_id, text=msg)
+			return
+
+		try:
+			self.timezones[chat_id] = int(args[0])
+			msg = "Timezone of this chat set to UTC"
+
+			if int(args[0]) >= 0:
+				msg += "+"
+				tz = args[0].zfill(2)
+			else:	
+				tz = args[0].zfill(3)
+			
+			msg += tz + ":00"
+
+			bot.send_message(chat_id=chat_id, text=msg)
+		except Exception as e:
+			msg = "Error setting timezone, please contact an admin if you think this is a bug."
+			bot.send_message(chat_id=chat_id, text=msg)
+			print("Error setTimezone", str(e))
+
+		self.save()
+
+	def getTimezone(self, bot, update):
+		try:
+			chat_id = update.message.chat_id
+		except AttributeError:
+			# Message was edited instead of sent
+			chat_id = (update['edited_message']['chat'])['id']
+
+		tz = self.timezones.get(chat_id)
+
+		# Makes the pretty message
+		if tz == None:
+			msg = "The timezone of this chat is UTC+00:00"
+		else:
+			msg = "The timezone of this chat is UTC"
+			if tz >= 0:
+				strTz = str(tz).zfill(2)
+				msg += "+"
+			else:
+				strTz = str(tz).zfill(3)
+			msg += strTz + ":00"
+
+		bot.send_message(chat_id=chat_id, text=msg)
+		
 
 
 	def subscribe(self, bot, update, args):

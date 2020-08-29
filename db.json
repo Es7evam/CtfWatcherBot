@@ -1,4 +1,5 @@
 {
     "dayWarned": [],
-    "hourWarned": []
+    "hourWarned": [],
+    "timezones": {}
 }
