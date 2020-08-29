@@ -35,6 +35,8 @@ class App:
 		self.dispatcher.add_handler(CommandHandler('unsubscribe', self.unsubscribe, pass_args=True))
 		self.dispatcher.add_handler(CommandHandler('listSubscribed', self.listSubscribed))
 		self.dispatcher.add_handler(CommandHandler('upcoming', self.upcoming))
+		self.dispatcher.add_handler(CommandHandler('getTimezone', self.getTimezone))
+		self.dispatcher.add_handler(CommandHandler('setTimezone', self.setTimezone, pass_args=True))
 		self.dispatcher.add_handler(CommandHandler('now', self.now))
 		# self.dispatcher.add_handler(CommandHandler('list_events', self.list_events, pass_args=True))
 
@@ -48,7 +50,8 @@ class App:
 			o = json.load(f)
 			self.subscribers = set(o['subscribers']) if 'subscribers' in o else set()
 			if 'teamSubscribers' in o:
-				self.teamSubscribers = eventScrapper.listToDict(defaultdict(list, o['teamSubscribers']))#eventScrapper.listToDict(o['teamSubscribers']) 
+				self.teamSubscribers = eventScrapper.listToDict(defaultdict(list, o['teamSubscribers']))
+				#eventScrapper.listToDict(o['teamSubscribers']) 
 				#self.teamSubscribers = eventScrapper.listToDict(o['teamSubscribers']) 
 			else: 
 				self.teamSubscribers = defaultdict(list)
@@ -58,6 +61,10 @@ class App:
 			db = json.load(dbFile)
 			self.dayWarned = set(db['dayWarned']) if 'dayWarned' in db else set()
 			self.hourWarned = set(db['hourWarned']) if 'hourWarned' in db else set()
+			self.timezones = dict()
+			if 'timezones' in db:
+				for chat, tz in db['timezones'].items():
+					self.timezones[int(chat)] = tz
 
 
 	def save(self):
@@ -73,6 +80,7 @@ class App:
 			json.dump({
                 'dayWarned': list(self.dayWarned),
 				'hourWarned': list(self.hourWarned),
+				'timezones': dict(self.timezones),
 			}, dbFile, indent=4)
 
 
@@ -94,7 +102,9 @@ class App:
 		msg += "/subscribe TeamName - Subscribes for the specified CTF notifications.\n"
 		msg += "/unsubscribe - Unsubscribes for all CTF notifications.\n"
 		msg += "/unsubscribe TeamName - Unsubscribes a team from the notifications.\n"
-		msg += "/listSubscribed - Lists all the teams subscribed in this chat\n"
+		msg += "/listSubscribed - Lists all the teams subscribed in this chat.\n"
+		msg += "/getTimezone - Shows the timezone in this chat.\n"
+		msg += "/setTimezone [TZ] - Sets the timezone to UTC + TZ (can be negative) in this chat.\n"
 		msg += "/help - Shows this help message.\n"
 		msg += "\nBe sure to check our [Github repo](https://github.com/Es7evam/CtfWatcherBot)."
 		bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True )
@@ -120,6 +130,64 @@ class App:
 			msg += "There are no teams subscribed in this chat!"
 		
 		bot.send_message(chat_id=chat_id, text=msg)
+
+	def setTimezone(self, bot, update, args):
+		try:
+			chat_id = update.message.chat_id
+		except AttributeError:
+			# Message was edited instead of sent
+			chat_id = (update['edited_message']['chat'])['id']
+
+		msg = ""
+		if len(args) ==0:
+			msg = "Please specify timezone in the message!\n E.g.: /setTimezone -3"
+			bot.send_message(chat_id=chat_id, text=msg)
+			return
+
+		try:
+			self.timezones[chat_id] = int(args[0])
+			msg = "Timezone of this chat set to UTC"
+			strTz = self.tzToString(int(args[0]))
+			msg += strTz
+
+			bot.send_message(chat_id=chat_id, text=msg)
+		except Exception as e:
+			msg = "Error setting timezone, please contact an admin if you think this is a bug."
+			bot.send_message(chat_id=chat_id, text=msg)
+			print("Error setTimezone", str(e))
+
+		self.save()
+
+	def getTimezone(self, bot, update):
+		try:
+			chat_id = update.message.chat_id
+		except AttributeError:
+			# Message was edited instead of sent
+			chat_id = (update['edited_message']['chat'])['id']
+
+		tz = self.timezones.get(chat_id)
+
+		# Makes the pretty message
+		if tz == None:
+			msg = "The timezone of this chat is UTC+00:00"
+		else:
+			msg = "The timezone of this chat is UTC"
+			strTz = self.tzToString(tz)
+			msg += strTz
+
+		bot.send_message(chat_id=chat_id, text=msg)
+		
+
+	# Receives an integer and return the UTC+XX:00 message
+	def tzToString(self, intTimezone):
+		if intTimezone >= 0:
+			strTz = str(intTimezone).zfill(2)
+			strTz = "+" + strTz 
+		else:
+			strTz = str(intTimezone).zfill(3)
+
+		strTz += ":00"
+		return strTz
 
 
 	def subscribe(self, bot, update, args):
@@ -289,7 +357,7 @@ class App:
 		self.save()
 
 
-	def list_events(self):
+	def list_events(self, timezone):
 		fmtstr = '%Y-%m-%dT%H:%M:%S'
 		now = int(time.time())
 		nextweek = now + 604800 * 4 # printing time in weeks
@@ -306,10 +374,12 @@ class App:
 		f = urllib.request.urlopen(req)
 		l = json.load(f)
 		newL = []
-		genstr = '%a, %B %d, %Y %H:%M UTC '	#
+		genstr = '%a, %B %d, %Y %H:%M UTC'	#
+
+		timeDelta = datetime.timedelta(hours=timezone)
 
 		for o in l:
-			o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
+			o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr) + timeDelta
 			o['start'] = o['start'].strftime(genstr)
 			newL.append(o)
 
@@ -317,12 +387,17 @@ class App:
 
 
 	def upcoming(self, bot, update):
-		l = self.list_events()
+		chat_id = update.message.chat_id
+		timezone = self.timezones.get(chat_id)
+		if timezone == None:
+			timezone = 0
+
+		l = self.list_events(timezone)
 		msg = "*Upcoming Events:*"
 		for o in l:
 			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') (' + str(o['id']) + ')' + '\n'
 			msg += o['format'] + '\n'
-			msg += str(o['start']) + '\n'
+			msg += str(o['start']) + self.tzToString(timezone) + '\n'
 			if(o['duration']['days'] > 1):
 				msg += 'Duration: ' + str(o['duration']['days']) + ' days'
 				if(o['duration']['hours']):
