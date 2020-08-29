@@ -102,7 +102,9 @@ class App:
 		msg += "/subscribe TeamName - Subscribes for the specified CTF notifications.\n"
 		msg += "/unsubscribe - Unsubscribes for all CTF notifications.\n"
 		msg += "/unsubscribe TeamName - Unsubscribes a team from the notifications.\n"
-		msg += "/listSubscribed - Lists all the teams subscribed in this chat\n"
+		msg += "/listSubscribed - Lists all the teams subscribed in this chat.\n"
+		msg += "/getTimezone - Shows the timezone in this chat.\n"
+		msg += "/setTimezone [TZ] - Sets the timezone to UTC + TZ (can be negative) in this chat.\n"
 		msg += "/help - Shows this help message.\n"
 		msg += "\nBe sure to check our [Github repo](https://github.com/Es7evam/CtfWatcherBot)."
 		bot.send_message(chat_id=update.message.chat_id, text=msg, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True )
