@@ -61,8 +61,11 @@ class App:
 			db = json.load(dbFile)
 			self.dayWarned = set(db['dayWarned']) if 'dayWarned' in db else set()
 			self.hourWarned = set(db['hourWarned']) if 'hourWarned' in db else set()
-			self.timezones = dict(db['timezones']) if 'timezones' in db else dict()
-			print("Timezones", self.timezones)
+			self.timezones = dict()
+			if 'timezones' in db:
+				for chat, tz in db['timezones'].items():
+					self.timezones[int(chat)] = tz
+
 
 	def save(self):
 		with open('config.json', 'w') as f:
@@ -142,14 +145,8 @@ class App:
 		try:
 			self.timezones[chat_id] = int(args[0])
 			msg = "Timezone of this chat set to UTC"
-
-			if int(args[0]) >= 0:
-				msg += "+"
-				tz = args[0].zfill(2)
-			else:	
-				tz = args[0].zfill(3)
-			
-			msg += tz + ":00"
+			strTz = self.tzToString(int(args[0]))
+			msg += strTz
 
 			bot.send_message(chat_id=chat_id, text=msg)
 		except Exception as e:
@@ -173,15 +170,22 @@ class App:
 			msg = "The timezone of this chat is UTC+00:00"
 		else:
 			msg = "The timezone of this chat is UTC"
-			if tz >= 0:
-				strTz = str(tz).zfill(2)
-				msg += "+"
-			else:
-				strTz = str(tz).zfill(3)
-			msg += strTz + ":00"
+			strTz = self.tzToString(tz)
+			msg += strTz
 
 		bot.send_message(chat_id=chat_id, text=msg)
 		
+
+	# Receives an integer and return the UTC+XX:00 message
+	def tzToString(self, intTimezone):
+		if intTimezone >= 0:
+			strTz = str(intTimezone).zfill(2)
+			strTz = "+" + strTz 
+		else:
+			strTz = str(intTimezone).zfill(3)
+
+		strTz += ":00"
+		return strTz
 
 
 	def subscribe(self, bot, update, args):
@@ -351,7 +355,7 @@ class App:
 		self.save()
 
 
-	def list_events(self):
+	def list_events(self, timezone):
 		fmtstr = '%Y-%m-%dT%H:%M:%S'
 		now = int(time.time())
 		nextweek = now + 604800 * 4 # printing time in weeks
@@ -368,10 +372,12 @@ class App:
 		f = urllib.request.urlopen(req)
 		l = json.load(f)
 		newL = []
-		genstr = '%a, %B %d, %Y %H:%M UTC '	#
+		genstr = '%a, %B %d, %Y %H:%M UTC'	#
+
+		timeDelta = datetime.timedelta(hours=timezone)
 
 		for o in l:
-			o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)
+			o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr) + timeDelta
 			o['start'] = o['start'].strftime(genstr)
 			newL.append(o)
 
@@ -379,12 +385,17 @@ class App:
 
 
 	def upcoming(self, bot, update):
-		l = self.list_events()
+		chat_id = update.message.chat_id
+		timezone = self.timezones.get(chat_id)
+		if timezone == None:
+			timezone = 0
+
+		l = self.list_events(timezone)
 		msg = "*Upcoming Events:*"
 		for o in l:
 			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') (' + str(o['id']) + ')' + '\n'
 			msg += o['format'] + '\n'
-			msg += str(o['start']) + '\n'
+			msg += str(o['start']) + self.tzToString(timezone) + '\n'
 			if(o['duration']['days'] > 1):
 				msg += 'Duration: ' + str(o['duration']['days']) + ' days'
 				if(o['duration']['hours']):
