@@ -47,9 +47,17 @@ def getScoreboard(eventId):
     url = 'https://ctftime.org/event/{}'.format(eventId)
     html = makeRequest(url)
 
-    # Gets the team list 
-    teamList = html.findAll('tr')[1:]
+    # Get CTF Title
     title = html.find('meta', {'property': 'og:title'})['content']
+
+    # Check if rating is being voted 
+    scoreboardHeader = html.find('tr')
+    if '*' in str(scoreboardHeader):
+        print("Rating for {} is still begin voted".format(title))
+        return [], title
+    
+    # Get team list 
+    teamList = html.findAll('tr')[1:]
 
     # Check if scoreboard is out yet
     hasScoreboard = False
