@@ -398,6 +398,7 @@ class App:
 			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') (' + str(o['id']) + ')' + '\n'
 			msg += o['format'] + '\n'
 			msg += str(o['start']) + self.tzToString(timezone) + '\n'
+			msg += 'Weight: ' + str(int(o['weight'])) + ' points \n'
 			if(o['duration']['days'] > 1):
 				msg += 'Duration: ' + str(o['duration']['days']) + ' days'
 				if(o['duration']['hours']):
@@ -413,6 +414,7 @@ class App:
 			else: #0 days
 				if(o['duration']['hours']):
 					msg += 'Duration: ' + str(o['duration']['hours']) + ' hours\n'
+
 
 		if update.message.chat.type == 'private':
 			print("User %s requested upcoming CTFs at %d" % (update.message.chat.username, int(time.time())))
