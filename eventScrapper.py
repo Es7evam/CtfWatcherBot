@@ -51,19 +51,22 @@ def getScoreboard(eventId):
     title = html.find('meta', {'property': 'og:title'})['content']
 
     # Check if rating is being voted 
-    scoreboardHeader = html.find('tr')
+    scoreboard = html.findAll('tr')
+    scoreboardHeader = scoreboard[0]
+
     if '*' in str(scoreboardHeader):
         print("Rating for {} is still begin voted".format(title))
         return [], title
     
     # Get team list 
-    teamList = html.findAll('tr')[1:]
+    teamList = scoreboard[1:]
 
+    leaderPoints = scoreboard[1].findAll('td')[-1].text
     # Check if scoreboard is out yet
     hasScoreboard = False
     h3 = html.findAll('h3')
     for element in h3:
-        if 'Scoreboard' in element:
+        if 'Scoreboard' in element and float(leaderPoints) != 0:
             hasScoreboard = True
     if hasScoreboard == False:
         return [], title
