@@ -395,7 +395,7 @@ class App:
 		l = self.list_events(timezone)
 		msg = "*Upcoming Events:*"
 		for o in l:
-			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') (' + str(o['id']) + ')' + '\n'
+			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') (' + '[' + str(o['id']) + ']' + '(https://ctftime.org/event/' + str(o['id']) + ')' + ')' + '\n'
 			msg += o['format'] + '\n'
 			msg += str(o['start']) + self.tzToString(timezone) + '\n'
 			msg += 'Weight: ' + str(int(o['weight'])) + ' points \n'
