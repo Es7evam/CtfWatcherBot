@@ -52,7 +52,11 @@ def getScoreboard(eventId):
 
     # Check if rating is being voted 
     scoreboard = html.findAll('tr')
-    scoreboardHeader = scoreboard[0]
+    
+    if(len(scoreboard) > 0):
+        scoreboardHeader = scoreboard[0]
+    else:
+        return [], title
 
     if '*' in str(scoreboardHeader):
         print("Rating for {} is still begin voted".format(title))
