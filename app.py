@@ -303,7 +303,7 @@ class App:
 					if seconds < 0:
 						seconds = 0
 
-					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 day."
+					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") ([" + str(ctf['id']) + "](https://ctftime.org/event/" + str(ctf['id']) + ")) will start in 1 day."
 					timer = threading.Timer(seconds, self.sendWarning, [bot, job, msg, ctf['id']])
 					timer.start()
 
@@ -316,7 +316,7 @@ class App:
 					if seconds < 0:
 						seconds = 0
 
-					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") will start in 1 hour."
+					msg = "[" + ctf['title'] + "](" + ctf['url'] + ") ([" + str(ctf['id']) + "](https://ctftime.org/event/" + str(ctf['id']) + ")) will start in 1 hour."
 					timer = threading.Timer(seconds, self.sendWarning, [bot, job, msg, ctf['id']])
 					timer.start()
 
