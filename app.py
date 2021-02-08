@@ -13,6 +13,7 @@ from collections import defaultdict
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ParseMode
+from telegram.utils.helpers import escape_markdown
 
 import eventScrapper
 
@@ -249,7 +250,10 @@ class App:
 		teamList = eventScrapper.getEventParticipants(ctfid)
 		with self.subscribersLock:
 			for subscriber in self.subscribers:
-				bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
+				try:
+					bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
+				except:
+					print("Message to user %s failed" % (subscriber))
 
 			for chat in self.teamSubscribers:
 				hasTeam = False
@@ -291,6 +295,7 @@ class App:
 		# If not, create a warning and put in it
 		try:
 			for ctf in ctfList:
+				ctf['title'] = escape_markdown(ctf['title'])
 				# Time until the start of the ctf
 				timedelta = ctf['start'] - now
 
@@ -334,6 +339,7 @@ class App:
 		toRemove = []
 		for ctf_id in self.hourWarned:
 			scores, ctfTitle = eventScrapper.getScoreboard(ctf_id)
+			ctfTitle = escape_markdown(ctfTitle)
 			if len(scores) > 0:
 				for chat in self.teamSubscribers:
 					msg = "*" + ctfTitle + "* has ended and the ratings are out.\n\n"
@@ -395,6 +401,7 @@ class App:
 		l = self.list_events(timezone)
 		msg = "*Upcoming Events:*"
 		for o in l:
+			o['title'] = escape_markdown(o['title'])
 			msg += '\n' + '[' + o['title'] + ']' + '(' + o['url'] + ') (' + '[' + str(o['id']) + ']' + '(https://ctftime.org/event/' + str(o['id']) + ')' + ')' + '\n'
 			msg += o['format'] + '\n'
 			msg += str(o['start']) + self.tzToString(timezone) + '\n'
@@ -442,6 +449,7 @@ class App:
 		for o in l:			
 			o['start'] = datetime.datetime.strptime(o['start'][:-6], fmtstr)	
 			o['finish'] = datetime.datetime.strptime(o['finish'][:-6], fmtstr)	
+			o['title'] = escape_markdown(o['title'])
 			if(int(o['start'].timestamp()) > daysAgo):
 				if(int(o['finish'].timestamp()) > now) and (int(o['start'].timestamp() < now)):
 					o['start'] = o['start'].strftime(genstr)
