@@ -250,7 +250,10 @@ class App:
 		teamList = eventScrapper.getEventParticipants(ctfid)
 		with self.subscribersLock:
 			for subscriber in self.subscribers:
-				bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
+				try:
+					bot.send_message(chat_id=subscriber, text=msg, parse_mode=ParseMode.MARKDOWN)
+				except:
+					print("Message to user %s failed" % (subscriber))
 
 			for chat in self.teamSubscribers:
 				hasTeam = False
