@@ -15,3 +15,5 @@ If you want to setup your own instance of the bot just create a `config.json` fi
     "key": "YOUR:TELEGRAM-KEY_HERE"
 }
 ```
+
+Using sqlite3, init the file db/ctfwatcherbot.db
