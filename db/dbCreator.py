@@ -1,4 +1,5 @@
 import sqlite3
+import os
 
 
 def CreateTables(dbConnection):
@@ -72,9 +73,10 @@ def DeleteTables(dbConnection):
         print("Error while deleting tables", error)
 
 
-if __name__ == "__main__":
+def run():
     try:
-        dbConnection = sqlite3.connect('../db/ctfwatcherbot.db')
+        filePath = os.path.dirname(__file__)
+        dbConnection = sqlite3.connect(filePath + '/ctfwatcherbot.db')
         print("Successfully connected to ctfwatcherbot database")
 
         # DeleteTables(dbConnection)
@@ -85,3 +87,6 @@ if __name__ == "__main__":
         if (dbConnection):
             dbConnection.close()
             print("Database connection was closed successfully")
+
+if __name__ == "__main__":
+    run()
