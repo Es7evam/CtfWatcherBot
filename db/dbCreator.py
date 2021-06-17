@@ -11,10 +11,11 @@ def CreateTables(dbConnection):
 
     queryCreateTeamSubscribers = '''
         CREATE TABLE teamsubscribers (
-            chatid INTEGER PRIMARY KEY,
+            chatid INTEGER,
             team TEXT, 
             teamid INTEGER,
             FOREIGN KEY(chatid) REFERENCES subscribers(chatid)
+            PRIMARY KEY(chatid, teamid)
         );
     '''
 
