@@ -2,10 +2,6 @@ import sqlite3
 from random import randint
 import pytest
 
-# Hacky thing to import
-#import sys, os
-#sys.path.append(os.path.realpath(os.path.dirname(__file__)+"/.."))
-
 from src import dbSubsManipulator
 import db.dbCreator
 

@@ -9,12 +9,20 @@ def CreateTables(dbConnection):
         );
     '''
 
+    queryCreateTeams = '''
+        CREATE TABLE teams (
+            teamid INTEGER PRIMARY KEY,
+            team TEXT
+        );
+    '''
+
     queryCreateTeamSubscribers = '''
         CREATE TABLE teamsubscribers (
             chatid INTEGER,
             team TEXT, 
             teamid INTEGER,
             FOREIGN KEY(chatid) REFERENCES subscribers(chatid)
+            FOREIGN KEY(teamid) REFERENCES teams(teamid)
             PRIMARY KEY(chatid, teamid)
         );
     '''
@@ -50,6 +58,7 @@ def CreateTables(dbConnection):
         cursor.execute(queryCreateCtfInfo)
         cursor.execute(queryCreateCtfWarning)
         cursor.execute(queryCreateSubscribers)
+        cursor.execute(queryCreateTeams)
         cursor.execute(queryCreateTeamSubscribers)
         dbConnection.commit()
         print("Tables created :D")
@@ -65,6 +74,7 @@ def DeleteTables(dbConnection):
         cursor.execute('DROP TABLE ctfwarning;')
         cursor.execute('DROP TABLE ctfinfo;')
         cursor.execute('DROP TABLE teamsubscribers;')
+        cursor.execute('DROP TABLE teams;')
         cursor.execute('DROP TABLE subscribers;')
         dbConnection.commit()
         print("Tables deleted :(")

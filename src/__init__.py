@@ -1,5 +1,21 @@
-from .dbSubsManipulator import *
+# from .dbSubsManipulator import (
+#     IsSubscribedToAll,
+#     InsertSubscribeToAll,
+#     GetSubscribedToAll,
+#     GetSubscribedTeams,
+#     GetSubscribedTeamsIds,
+#     SubscribeTeamId,
+#     SubscribeTeam,
+#     InsertTeam,
+#     LastTeamIdDb,
+#     IsTeamInDatabase
+# )
 
-__all__ = (
-    'dbSubsManipulator'
-)
+#from .newFile import *
+#from .workerAPI import *
+#from .dbSubsManipulator import *
+
+#__all__ = (
+#    'dbSubsManipulator',
+#    'workerApi'
+#)
