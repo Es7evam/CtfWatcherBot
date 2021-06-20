@@ -111,12 +111,14 @@ class App:
 		self.updater.start_polling()
 		self.updater.idle()
 
-	def start(self, bot, update):
+	def start(self, update:Update, context: CallbackContext):
+		bot = context.bot
 		msg = "Welcome to CtfWatcherBot \\o/\n"
 		msg += "Type /help for a list of functionalities."
 		bot.send_message(chat_id=update.message.chat_id, text=msg)
 
-	def help(self, bot, update):
+	def help(self, update: Update, context: CallbackContext):
+		bot = context.bot
 		msg = "Hey, I'm CtfWatcher Bot :D. I list Capture The Flag competitions."
 		msg += "\n\nI currently have this commands:\n\n"
 		msg += "/start - Starts the bot.\n"
